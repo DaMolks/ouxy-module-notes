@@ -4,14 +4,22 @@ import android.content.Context
 import android.view.LayoutInflater
 import android.widget.LinearLayout
 import android.widget.Toast
+import com.damolks.ouxy.module.StorageApi
 import com.damolks.ouxy.notes.databinding.ViewNotesBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
-class NotesView(context: Context) : LinearLayout(context) {
+class NotesView(
+    context: Context,
+    private val storage: StorageApi
+) : LinearLayout(context) {
     private val binding = ViewNotesBinding.inflate(LayoutInflater.from(context), this, true)
     private val scope = CoroutineScope(Dispatchers.Main)
+
+    companion object {
+        private const val KEY_LAST_NOTE = "last_note"
+    }
 
     init {
         orientation = VERTICAL
@@ -31,7 +39,7 @@ class NotesView(context: Context) : LinearLayout(context) {
     private fun saveNote(note: String) {
         scope.launch {
             try {
-                // TODO: Implémenter la sauvegarde via ModuleContext
+                storage.save(KEY_LAST_NOTE, note)
                 Toast.makeText(context, "Note sauvegardée", Toast.LENGTH_SHORT).show()
             } catch (e: Exception) {
                 Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -42,7 +50,8 @@ class NotesView(context: Context) : LinearLayout(context) {
     private fun loadLastNote() {
         scope.launch {
             try {
-                // TODO: Implémenter le chargement via ModuleContext
+                val lastNote = storage.get(KEY_LAST_NOTE, "")
+                binding.noteInput.setText(lastNote)
             } catch (e: Exception) {
                 Toast.makeText(context, "Erreur: ${e.message}", Toast.LENGTH_SHORT).show()
             }
