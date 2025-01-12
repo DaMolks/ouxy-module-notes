@@ -36,33 +36,59 @@ android {
     }
 }
 
-// Tâche pour créer le JAR du module
-task createModuleJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    from 'build/intermediates/javac/release/classes'
-    from 'build/tmp/kotlin-classes/release'
-    exclude 'BuildConfig.class'
+// Tâche pour créer le module jar avec toutes les dépendances
+task createModuleJarWithDependencies(type: Jar) {
+    // Dépend de la compilation
+    dependsOn 'assembleRelease'
+    
+    // Structure du module
+    def moduleDir = file("${buildDir}/module")
+    def buildDir = file("${moduleDir}/build")
+    buildDir.mkdirs()
+
+    // Chemin du JAR final
     archiveFileName = 'module.jar'
-    destinationDirectory = file('build/module')
+    destinationDirectory = buildDir
+
+    // Inclure toutes les classes compilées
+    from(android.sourceSets.main.java.srcDirs)
+    from(file("${buildDir}/intermediates/javac/release/classes"))
+    from(file("${buildDir}/tmp/kotlin-classes/release"))
+
+    // Inclure les ressources
+    from('src/main/res') {
+        include '**/*'
+        into 'res'
+    }
+
+    // Inclure les classes et ressources des dépendances
+    from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) })
+    
+    // Exclure les fichiers de build non nécessaires
+    exclude 'BuildConfig.class'
+    exclude 'R.class'
+    exclude 'R$*.class'
+    exclude 'META-INF/**'
+    exclude 'kotlin/**'
+    exclude 'org/**'
 }
 
-// Tâche pour copier le JAR et les ressources dans la structure attendue
-task packageModule(type: Copy) {
-    dependsOn createModuleJar
-    from('build/module') {
-        include 'module.jar'
-    }
+// Copier les fichiers additionnels si nécessaire
+task copyModuleAssets(type: Copy) {
     from('src/main/assets') {
-        into 'assets'
+        include '**/*'
     }
-    into 'build/output/module/build'
+    into "${buildDir}/module/build/assets"
 }
 
-afterEvaluate {
-    packageModule.dependsOn(assembleRelease)
+// Tâche principale pour packager le module
+task packageModule(type: Copy) {
+    dependsOn createModuleJarWithDependencies
+    dependsOn copyModuleAssets
 }
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
