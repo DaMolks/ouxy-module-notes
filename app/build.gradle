@@ -27,6 +27,42 @@ android {
     }
 }
 
+// Tâche pour créer le JAR du module
+task createModuleJar(type: Jar) {
+    dependsOn 'assembleRelease'
+    
+    // Structure du module
+    def moduleDir = file("${buildDir}/module")
+    def outputDir = file("${moduleDir}/build")
+    outputDir.mkdirs()
+
+    // Configuration du JAR
+    archiveFileName = 'module.jar'
+    destinationDirectory = outputDir
+    
+    // Inclure les classes compilées
+    from android.sourceSets.main.java.srcDirs
+    from("${buildDir}/intermediates/javac/release/classes")
+    from("${buildDir}/tmp/kotlin-classes/release")
+    
+    // Exclure les fichiers non nécessaires
+    exclude 'BuildConfig.class'
+    exclude 'R.class'
+    exclude 'R$*.class'
+}
+
+// Tâche pour copier les assets si nécessaire
+task copyModuleAssets(type: Copy) {
+    from('src/main/assets')
+    into "${buildDir}/module/build/assets"
+}
+
+// Tâche principale pour packager le module
+task packageModule {
+    dependsOn createModuleJar
+    dependsOn copyModuleAssets
+}
+
 dependencies {
     implementation files('libs/ouxy-sdk.jar')
     implementation 'androidx.core:core-ktx:1.12.0'
