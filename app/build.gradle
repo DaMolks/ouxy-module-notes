@@ -1,0 +1,77 @@
+plugins {
+    id 'com.android.library'
+    id 'kotlin-android'
+    id 'kotlin-kapt'
+    id 'kotlinx-serialization'
+}
+
+android {
+    namespace 'com.damolks.ouxy.modules.notes'
+    compileSdk 34
+
+    defaultConfig {
+        minSdk 24
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        consumerProguardFiles "consumer-rules.pro"
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+    buildFeatures {
+        viewBinding true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
+    }
+
+    kotlinOptions {
+        jvmTarget = '17'
+    }
+}
+
+// Tâche pour créer le JAR du module
+task createModuleJar(type: Jar) {
+    from android.sourceSets.main.java.srcDirs
+    from 'build/intermediates/javac/release/classes'
+    from 'build/tmp/kotlin-classes/release'
+    exclude 'BuildConfig.class'
+    archiveFileName = 'module.jar'
+    destinationDirectory = file('build/module')
+}
+
+// Tâche pour copier le JAR et les ressources dans la structure attendue
+task packageModule(type: Copy) {
+    dependsOn createModuleJar
+    from('build/module') {
+        include 'module.jar'
+    }
+    from('src/main/assets') {
+        into 'assets'
+    }
+    into 'build/output/module/build'
+}
+
+afterEvaluate {
+    packageModule.dependsOn(assembleRelease)
+}
+
+dependencies {
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'com.google.android.material:material:1.11.0'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
+    implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
+}
