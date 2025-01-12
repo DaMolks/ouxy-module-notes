@@ -27,10 +27,10 @@ android {
     }
 }
 
-// Tâche pour créer le JAR du module
+// Tâche pour créer le module jar avec toutes les dépendances
 task createModuleJar(type: Jar) {
     dependsOn 'assembleRelease'
-    
+
     // Structure du module
     def moduleDir = file("${buildDir}/module")
     def outputDir = file("${moduleDir}/build")
@@ -39,21 +39,28 @@ task createModuleJar(type: Jar) {
     // Configuration du JAR
     archiveFileName = 'module.jar'
     destinationDirectory = outputDir
-    
-    // Inclure les classes compilées
-    from android.sourceSets.main.java.srcDirs
-    from("${buildDir}/intermediates/javac/release/classes")
+
+    // Inclure les classes compilées et dexées
+    from(android.sourceSets.main.java.srcDirs)
+    from("${buildDir}/intermediates/dex/release/mergeDexRelease")
     from("${buildDir}/tmp/kotlin-classes/release")
-    
+
     // Exclure les fichiers non nécessaires
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
 
-    // Log du chemin du JAR
     doLast {
-        println "JAR created at: ${destinationDirectory.get().asFile.absolutePath}"
-        println "JAR filename: ${archiveFileName.get()}"
+        // Déplacer le JAR final vers le répertoire releases/
+        def releasesDir = rootProject.file("releases")
+        releasesDir.mkdirs()
+        copy {
+            from outputDir
+            into releasesDir
+            rename { String fileName ->
+                'notes-module.jar'
+            }
+        }
     }
 }
 
@@ -70,7 +77,7 @@ task packageModule {
 }
 
 dependencies {
-    implementation files('libs/ouxy-sdk.jar')
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
