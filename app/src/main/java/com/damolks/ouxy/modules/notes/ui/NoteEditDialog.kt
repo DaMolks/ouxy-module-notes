@@ -7,8 +7,9 @@ import com.damolks.ouxy.modules.notes.data.Note
 import com.damolks.ouxy.modules.notes.databinding.DialogEditNoteBinding
 import java.util.UUID
 
-class NoteEditDialog(private val context: Context) {
-
+class NoteEditDialog(
+    private val context: Context
+) {
     fun show(note: Note? = null, onSave: (Note) -> Unit) {
         val binding = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
         
