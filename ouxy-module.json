@@ -1,8 +1,14 @@
 {
+    "id": "ouxy-module-notes",
     "name": "Notes",
     "description": "Module de prise de notes avec support des tags",
     "version": "1.0.0",
     "minAppVersion": "1.0.0",
+    "author": "DaMolks",
     "entry": "com.damolks.ouxy.modules.notes.NotesModule",
-    "screenshots": []
+    "jarPath": "releases/notes-module.jar",
+    "permissions": [
+        "STORAGE"
+    ],
+    "dependencies": {}
 }
