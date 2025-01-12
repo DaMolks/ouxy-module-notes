@@ -38,7 +38,6 @@ android {
 
 // Tâche pour créer le module jar avec toutes les dépendances
 task createModuleJarWithDependencies(type: Jar) {
-    // Dépend de la compilation
     dependsOn 'assembleRelease'
     
     // Structure du module
@@ -61,8 +60,10 @@ task createModuleJarWithDependencies(type: Jar) {
         into 'res'
     }
 
-    // Inclure les classes et ressources des dépendances
-    from(configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) })
+    // Inclure les dépendances
+    from {
+        configurations.implementation.collect { it.isDirectory() ? it : zipTree(it) }
+    }
     
     // Exclure les fichiers de build non nécessaires
     exclude 'BuildConfig.class'
