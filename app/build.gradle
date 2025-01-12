@@ -11,15 +11,6 @@ android {
 
     defaultConfig {
         minSdk 24
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-        consumerProguardFiles "consumer-rules.pro"
-    }
-
-    buildTypes {
-        release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
     }
 
     buildFeatures {
@@ -36,43 +27,8 @@ android {
     }
 }
 
-// Tâche simple pour créer le JAR du module
-task createModuleJar(type: Jar) {
-    dependsOn 'assembleRelease'
-    
-    // Créer le dossier de sortie
-    def moduleDir = file("${buildDir}/module/build")
-    moduleDir.mkdirs()
-
-    // Configuration du JAR
-    archiveFileName = 'module.jar'
-    destinationDirectory = moduleDir
-    
-    // Inclure les classes compilées
-    from(android.sourceSets.main.java.srcDirs)
-    from("${buildDir}/intermediates/javac/release/classes")
-    from("${buildDir}/tmp/kotlin-classes/release")
-    
-    // Exclure les fichiers non nécessaires
-    exclude 'BuildConfig.class'
-    exclude 'R.class'
-    exclude 'R$*.class'
-}
-
-// Tâche pour copier les assets si nécessaire
-task copyModuleAssets(type: Copy) {
-    from('src/main/assets')
-    into "${buildDir}/module/build/assets"
-}
-
-// Tâche principale
-task packageModule {
-    dependsOn createModuleJar
-    dependsOn copyModuleAssets
-}
-
 dependencies {
-    implementation files('libs/ouxy-sdk.jar')  // Dépendance explicite vers le SDK
+    implementation files('libs/ouxy-sdk.jar')
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
@@ -80,8 +36,4 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
 }

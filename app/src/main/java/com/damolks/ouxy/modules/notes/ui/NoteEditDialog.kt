@@ -1,6 +1,7 @@
 package com.damolks.ouxy.modules.notes.ui
 
 import android.content.Context
+import android.view.LayoutInflater
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.damolks.ouxy.modules.notes.data.Note
 import com.damolks.ouxy.modules.notes.databinding.DialogEditNoteBinding
@@ -9,7 +10,7 @@ import java.util.UUID
 class NoteEditDialog(private val context: Context) {
 
     fun show(note: Note? = null, onSave: (Note) -> Unit) {
-        val binding = DialogEditNoteBinding.inflate(context.layoutInflater)
+        val binding = DialogEditNoteBinding.inflate(LayoutInflater.from(context))
         
         // Pré-remplir avec les données existantes si c'est une modification
         note?.let {
