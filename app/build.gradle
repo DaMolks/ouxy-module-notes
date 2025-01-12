@@ -49,6 +49,12 @@ task createModuleJar(type: Jar) {
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
+
+    // Log du chemin du JAR
+    doLast {
+        println "JAR created at: ${destinationDirectory.get().asFile.absolutePath}"
+        println "JAR filename: ${archiveFileName.get()}"
+    }
 }
 
 // Tâche pour copier les assets si nécessaire
