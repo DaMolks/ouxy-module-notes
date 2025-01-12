@@ -2,7 +2,6 @@ package com.damolks.ouxy.modules.notes
 
 import android.view.LayoutInflater
 import android.view.View
-import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.damolks.ouxy.module.ModuleContext
 import com.damolks.ouxy.module.OuxyModule
