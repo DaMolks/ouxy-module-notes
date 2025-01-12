@@ -1,13 +1,7 @@
 {
-    "id": "ouxy-notes",
-    "name": "Notes Rapides",
-    "description": "Module de prise de notes rapides pour Ouxy",
+    "name": "Notes",
+    "description": "Module notepad, pour créer des notes selon des tags",
     "version": "1.0.0",
     "minAppVersion": "1.0.0",
-    "author": "DaMolks",
-    "entry": "com.damolks.ouxy.notes.NotesModule",
-    "jarPath": "module/build/module.jar",
-    "permissions": [
-        "STORAGE"
-    ],
     "screenshots": []
+}
