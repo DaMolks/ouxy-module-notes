@@ -36,55 +36,38 @@ android {
     }
 }
 
-// Tâche pour créer le module jar avec toutes les dépendances
-task createModuleJarWithDependencies(type: Jar) {
+// Tâche simple pour créer le JAR du module
+task createModuleJar(type: Jar) {
     dependsOn 'assembleRelease'
     
-    // Structure du module
-    def moduleDir = file("${buildDir}/module")
-    def buildDir = file("${moduleDir}/build")
-    buildDir.mkdirs()
+    // Créer le dossier de sortie
+    def moduleDir = file("${buildDir}/module/build")
+    moduleDir.mkdirs()
 
-    // Chemin du JAR final
+    // Configuration du JAR
     archiveFileName = 'module.jar'
-    destinationDirectory = buildDir
-
-    // Inclure toutes les classes compilées
-    from(android.sourceSets.main.java.srcDirs)
-    from(file("${buildDir}/intermediates/javac/release/classes"))
-    from(file("${buildDir}/tmp/kotlin-classes/release"))
-
-    // Inclure les ressources
-    from('src/main/res') {
-        include '**/*'
-        into 'res'
-    }
-
-    // Inclure les dépendances
-    from {
-        configurations.implementation.collect { it.isDirectory() ? it : zipTree(it) }
-    }
+    destinationDirectory = moduleDir
     
-    // Exclure les fichiers de build non nécessaires
+    // Inclure les classes compilées
+    from(android.sourceSets.main.java.srcDirs)
+    from("${buildDir}/intermediates/javac/release/classes")
+    from("${buildDir}/tmp/kotlin-classes/release")
+    
+    // Exclure les fichiers non nécessaires
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
-    exclude 'META-INF/**'
-    exclude 'kotlin/**'
-    exclude 'org/**'
 }
 
-// Copier les fichiers additionnels si nécessaire
+// Tâche pour copier les assets si nécessaire
 task copyModuleAssets(type: Copy) {
-    from('src/main/assets') {
-        include '**/*'
-    }
+    from('src/main/assets')
     into "${buildDir}/module/build/assets"
 }
 
-// Tâche principale pour packager le module
-task packageModule(type: Copy) {
-    dependsOn createModuleJarWithDependencies
+// Tâche principale
+task packageModule {
+    dependsOn createModuleJar
     dependsOn copyModuleAssets
 }
 
