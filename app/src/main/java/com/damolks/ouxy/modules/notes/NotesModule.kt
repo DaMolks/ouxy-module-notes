@@ -13,17 +13,17 @@ import com.damolks.ouxy.modules.notes.ui.NotesAdapter
 import kotlinx.coroutines.launch
 
 class NotesModule : OuxyModule {
-    private lateinit var context: ModuleContext
+    private lateinit var moduleContext: ModuleContext
     private lateinit var binding: ModuleNotesMainBinding
     private lateinit var storage: NotesStorage
     private lateinit var adapter: NotesAdapter
     private lateinit var editDialog: NoteEditDialog
     
     override fun initialize(context: ModuleContext) {
-        this.context = context
+        this.moduleContext = context
         storage = NotesStorage(context)
-        binding = ModuleNotesMainBinding.inflate(LayoutInflater.from(context.context))
-        editDialog = NoteEditDialog(context.context)
+        binding = ModuleNotesMainBinding.inflate(LayoutInflater.from(moduleContext.context))
+        editDialog = NoteEditDialog(moduleContext.context)
         setupViews()
         loadNotes()
     }
@@ -37,7 +37,7 @@ class NotesModule : OuxyModule {
     private fun setupViews() {
         adapter = NotesAdapter(::onNoteClick)
         binding.notesList.apply {
-            layoutManager = LinearLayoutManager(context.context)
+            layoutManager = LinearLayoutManager(moduleContext.context)
             adapter = this@NotesModule.adapter
         }
         
@@ -47,7 +47,7 @@ class NotesModule : OuxyModule {
     }
 
     private fun loadNotes() {
-        context.lifecycleScope.launch {
+        moduleContext.lifecycleScope.launch {
             val notes = storage.getAllNotes()
             adapter.submitList(notes)
         }
@@ -59,7 +59,7 @@ class NotesModule : OuxyModule {
 
     private fun showNoteDialog(note: Note? = null) {
         editDialog.show(note) { savedNote ->
-            context.lifecycleScope.launch {
+            moduleContext.lifecycleScope.launch {
                 storage.saveNote(savedNote)
                 loadNotes()
             }
