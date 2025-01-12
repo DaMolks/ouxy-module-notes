@@ -1,7 +1,8 @@
 {
     "name": "Notes",
-    "description": "Module notepad, pour créer des notes selon des tags",
+    "description": "Module de prise de notes avec support des tags",
     "version": "1.0.0",
     "minAppVersion": "1.0.0",
+    "entry": "com.damolks.ouxy.modules.notes.NotesModule",
     "screenshots": []
 }
