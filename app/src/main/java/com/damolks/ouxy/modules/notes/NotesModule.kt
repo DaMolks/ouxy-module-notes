@@ -22,8 +22,8 @@ class NotesModule : OuxyModule {
     override fun initialize(context: ModuleContext) {
         this.context = context
         storage = NotesStorage(context)
-        binding = ModuleNotesMainBinding.inflate(LayoutInflater.from(context.context()))
-        editDialog = NoteEditDialog(context.context())
+        binding = ModuleNotesMainBinding.inflate(LayoutInflater.from(context.context))
+        editDialog = NoteEditDialog(context.context)
         setupViews()
         loadNotes()
     }
@@ -37,7 +37,7 @@ class NotesModule : OuxyModule {
     private fun setupViews() {
         adapter = NotesAdapter(::onNoteClick)
         binding.notesList.apply {
-            layoutManager = LinearLayoutManager(context.context())
+            layoutManager = LinearLayoutManager(context.context)
             adapter = this@NotesModule.adapter
         }
         
