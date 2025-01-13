@@ -14,10 +14,6 @@ android {
         multiDexEnabled true
     }
 
-    buildFeatures {
-        viewBinding true
-    }
-
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -28,103 +24,22 @@ android {
     }
 }
 
-task extractDependencies {
-    doLast {
-        def depDir = new File("${buildDir}/tmp/jar-deps")
-        depDir.deleteDir()
-        depDir.mkdirs()
-        
-        configurations.implementation.resolvedConfiguration.resolvedArtifacts.findAll { artifact ->
-            def name = artifact.name
-            return name.contains("kotlinx-serialization") || name.contains("kotlinx-coroutines")
-        }.each { artifact ->
-            def file = artifact.file
-            if (file.exists()) {
-                project.copy {
-                    from zipTree(file)
-                    into depDir
-                    include '**/*.class'
-                    include '**/*.kotlin_metadata'
-                    include '**/*.kotlin_module'
-                    exclude 'META-INF/**'
-                }
-            }
-        }
-    }
-}
-
-task createIntermediateJar(type: Jar) {
-    dependsOn 'assembleRelease', extractDependencies
-    archiveFileName = 'intermediate.jar'
-    destinationDirectory = layout.buildDirectory.dir('intermediates/tmp')
-    
-    from(layout.buildDirectory.dir('intermediates/javac/release/classes'))
-    from(layout.buildDirectory.dir('tmp/kotlin-classes/release'))
-    from(layout.buildDirectory.dir('tmp/jar-deps'))
-    
-    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
-    
-    doFirst {
-        destinationDirectory.get().asFile.mkdirs()
-    }
-}
-
-task createDex(type: Exec) {
-    dependsOn createIntermediateJar
-    workingDir layout.buildDirectory.get().asFile
-    
-    def sdk = android.sdkDirectory
-    if (!sdk) {
-        throw new GradleException("Android SDK not found")
-    }
-    
-    def buildToolsVersion = android.buildToolsVersion
-    def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
-    def d8Executable = isWindows ? "d8.bat" : "d8"
-    
-    def buildToolsDir = new File(sdk, "build-tools/${buildToolsVersion}")
-    def d8Path = new File(buildToolsDir, d8Executable)
-    def intermediateJar = layout.buildDirectory.file('intermediates/tmp/intermediate.jar').get().asFile
-    def dexOutputJar = layout.buildDirectory.file('intermediates/dex/release.jar').get().asFile
-    
-    def platformsDir = new File(sdk, "platforms")
-    def androidPlatform = platformsDir.listFiles()?.find { it.name.startsWith("android-") }
-    def androidJar = androidPlatform ? new File(androidPlatform, "android.jar") : null
-    
-    doFirst {
-        dexOutputJar.parentFile.mkdirs()
-        if (!androidJar?.exists()) {
-            throw new GradleException("Cannot find android.jar in any of the platform directories in ${platformsDir.absolutePath}")
-        }
-        if (!d8Path.exists()) {
-            throw new GradleException("Cannot find d8 at ${d8Path.absolutePath}")
-        }
-    }
-    
-    commandLine d8Path.absolutePath,
-            "--lib",
-            androidJar.absolutePath,
-            "--output",
-            dexOutputJar.absolutePath,
-            intermediateJar.absolutePath
-}
-
 task createModuleJar(type: Jar) {
-    dependsOn createDex
+    from android.sourceSets.main.java.srcDirs
+    from android.sourceSets.main.kotlin.srcDirs
+    from android.sourceSets.main.resources.srcDirs
     
+    exclude 'BuildConfig.class'
+    exclude 'R.class'
+    exclude 'R$*.class'
+    
+    destinationDirectory = file("${projectDir}/releases")
     archiveFileName = 'notes-module.jar'
-    destinationDirectory = layout.projectDirectory.dir('releases')
-    
-    from(zipTree(layout.buildDirectory.file('intermediates/dex/release.jar')))
-    from(android.sourceSets.main.resources.srcDirs)
-    
-    doFirst {
-        destinationDirectory.get().asFile.mkdirs()
-    }
 }
 
 dependencies {
     implementation files('libs/ouxy-sdk.jar')
+    
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'

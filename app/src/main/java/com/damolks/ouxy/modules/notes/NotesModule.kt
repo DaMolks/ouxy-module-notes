@@ -1,68 +1,72 @@
 package com.damolks.ouxy.modules.notes
 
-import android.view.LayoutInflater
 import android.view.View
-import androidx.recyclerview.widget.LinearLayoutManager
+import android.widget.LinearLayout
 import com.damolks.ouxy.module.ModuleContext
 import com.damolks.ouxy.module.OuxyModule
 import com.damolks.ouxy.modules.notes.data.Note
 import com.damolks.ouxy.modules.notes.data.NotesStorage
-import com.damolks.ouxy.modules.notes.databinding.ModuleNotesMainBinding
-import com.damolks.ouxy.modules.notes.ui.NoteEditDialog
-import com.damolks.ouxy.modules.notes.ui.NotesAdapter
 import kotlinx.coroutines.launch
 
 class NotesModule : OuxyModule {
-    private lateinit var moduleContext: ModuleContext
-    private lateinit var binding: ModuleNotesMainBinding
+    private lateinit var context: ModuleContext
     private lateinit var storage: NotesStorage
-    private lateinit var adapter: NotesAdapter
-    private lateinit var editDialog: NoteEditDialog
+    private lateinit var mainView: LinearLayout
     
     override fun initialize(context: ModuleContext) {
-        this.moduleContext = context
-        storage = NotesStorage(context)
-        binding = ModuleNotesMainBinding.inflate(LayoutInflater.from(moduleContext.context))
-        editDialog = NoteEditDialog(moduleContext.context)
-        setupViews()
+        this.context = context
+        this.storage = NotesStorage(context.storage)
+        this.mainView = LinearLayout(context.context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        
         loadNotes()
+        
+        // Notification quand une note est créée
+        context.registerEventHandler("request_note_creation") { data ->
+            val title = data["title"] as? String ?: return@registerEventHandler
+            val content = data["content"] as? String ?: return@registerEventHandler
+            createNote(title, content)
+        }
     }
-
-    override fun getMainView(): View = binding.root
-
+    
+    override fun getMainView(): View = mainView
+    
     override fun cleanup() {
         // Nettoyage si nécessaire
     }
-
-    private fun setupViews() {
-        adapter = NotesAdapter(::onNoteClick)
-        binding.notesList.apply {
-            layoutManager = LinearLayoutManager(moduleContext.context)
-            adapter = this@NotesModule.adapter
-        }
-        
-        binding.addNoteFab.setOnClickListener {
-            showNoteDialog()
-        }
-    }
-
+    
     private fun loadNotes() {
-        moduleContext.lifecycleScope.launch {
-            val notes = storage.getAllNotes()
-            adapter.submitList(notes)
-        }
-    }
-
-    private fun onNoteClick(note: Note) {
-        showNoteDialog(note)
-    }
-
-    private fun showNoteDialog(note: Note? = null) {
-        editDialog.show(note) { savedNote ->
-            moduleContext.lifecycleScope.launch {
-                storage.saveNote(savedNote)
-                loadNotes()
+        context.lifecycleScope.launch {
+            try {
+                val notes = storage.getAllNotes()
+                notes.forEach { note ->
+                    notifyNoteAvailable(note)
+                }
+            } catch (e: Exception) {
+                // Gestion d'erreur
             }
         }
+    }
+    
+    private fun createNote(title: String, content: String) {
+        context.lifecycleScope.launch {
+            try {
+                val note = Note(title = title, content = content)
+                storage.saveNote(note)
+                notifyNoteAvailable(note)
+            } catch (e: Exception) {
+                // Gestion d'erreur
+            }
+        }
+    }
+    
+    private fun notifyNoteAvailable(note: Note) {
+        context.sendEvent("note_available", mapOf(
+            "id" to note.id,
+            "title" to note.title,
+            "content" to note.content,
+            "timestamp" to note.timestamp
+        ))
     }
 }
