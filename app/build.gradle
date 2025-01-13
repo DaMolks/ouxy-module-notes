@@ -5,6 +5,10 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization'
 }
 
+configurations {
+    jarInclude
+}
+
 android {
     namespace 'com.damolks.ouxy.modules.notes'
     compileSdk 34
@@ -29,11 +33,6 @@ android {
     }
 }
 
-configurations {
-    jarInclude
-    jarInclude.extendsFrom implementation
-}
-
 task extractJars(type: Sync) {
     from configurations.jarInclude.collect { zipTree(it) }
     include '**/*.class'
@@ -48,28 +47,14 @@ task createIntermediateJar(type: Jar) {
     archiveFileName = 'intermediate.jar'
     destinationDirectory = layout.buildDirectory.dir('intermediates/tmp')
     
-    // Classes compilées
     from(layout.buildDirectory.dir('intermediates/javac/release/classes'))
     from(layout.buildDirectory.dir('tmp/kotlin-classes/release'))
-    
-    // Classes des dépendances
     from(layout.buildDirectory.dir('tmp/jar-deps'))
     
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     
     doFirst {
-        println "Creating intermediate JAR with dependencies:"
-        configurations.jarInclude.each { println "  -> ${it}" }
         destinationDirectory.get().asFile.mkdirs()
-    }
-    
-    doLast {
-        def jarFile = new java.util.jar.JarFile(archiveFile.get().asFile)
-        println "\nIntermediate JAR contents:"
-        jarFile.entries().each { entry ->
-            println "  -> ${entry.name}"
-        }
-        jarFile.close()
     }
 }
 
@@ -103,10 +88,6 @@ task createDex(type: Exec) {
         if (!d8Path.exists()) {
             throw new GradleException("Cannot find d8 at ${d8Path.absolutePath}")
         }
-        println "\nRunning d8 with:"
-        println "  -> Input: ${intermediateJar.absolutePath}"
-        println "  -> Output: ${dexOutputJar.absolutePath}"
-        println "  -> Android JAR: ${androidJar.absolutePath}"
     }
     
     commandLine d8Path.absolutePath,
@@ -129,33 +110,19 @@ task createModuleJar(type: Jar) {
     doFirst {
         destinationDirectory.get().asFile.mkdirs()
     }
-    
-    doLast {
-        println "\nModule JAR created at: ${archiveFile.get().asFile.absolutePath}"
-        def jarFile = new java.util.jar.JarFile(archiveFile.get().asFile)
-        println "Final JAR contents:"
-        jarFile.entries().each { entry ->
-            println "  -> ${entry.name} (${entry.size} bytes)"
-        }
-        jarFile.close()
-    }
 }
 
 dependencies {
     implementation files('libs/ouxy-sdk.jar')
-    
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
-    
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
-
+    
     jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2'
     jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     jarInclude 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    jarInclude "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
 }
