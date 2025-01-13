@@ -34,13 +34,15 @@ task createDex(type: Exec) {
     
     def androidHome = System.getenv("ANDROID_HOME")
     def buildToolsVersion = android.buildToolsVersion
-    def dxPath = "${androidHome}/build-tools/${buildToolsVersion}/d8"
+    def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
+    def d8Executable = isWindows ? "d8.bat" : "d8"
+    def dxPath = new File(androidHome, "build-tools/${buildToolsVersion}/${d8Executable}")
     
     def classesDir = "${buildDir}/intermediates/javac/release/classes"
     def kotlinClassesDir = "${buildDir}/tmp/kotlin-classes/release"
     def dexOutputDir = "${buildDir}/intermediates/dex/release"
     
-    commandLine dxPath,
+    commandLine dxPath.absolutePath,
             '--output',
             dexOutputDir,
             classesDir,
