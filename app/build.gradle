@@ -11,6 +11,14 @@ android {
 
     defaultConfig {
         minSdk 24
+        multiDexEnabled true
+    }
+
+    buildTypes {
+        release {
+            minifyEnabled false
+            multiDexEnabled true
+        }
     }
 
     buildFeatures {
@@ -27,53 +35,50 @@ android {
     }
 }
 
-// Tâche pour créer le module jar avec toutes les dépendances
-task createModuleJar(type: Jar) {
+task createDex(type: Exec) {
     dependsOn 'assembleRelease'
+    workingDir "${buildDir}"
+    
+    def androidHome = System.getenv("ANDROID_HOME")
+    def buildToolsVersion = android.buildToolsVersion
+    def dxPath = "${androidHome}/build-tools/${buildToolsVersion}/d8"
+    
+    def classesDir = "${buildDir}/intermediates/javac/release/classes"
+    def kotlinClassesDir = "${buildDir}/tmp/kotlin-classes/release"
+    def dexOutputDir = "${buildDir}/intermediates/dex/release"
+    
+    commandLine dxPath,
+            '--output',
+            dexOutputDir,
+            classesDir,
+            kotlinClassesDir
+}
 
-    // Structure du module
-    def moduleDir = file("${buildDir}/module")
-    def outputDir = file("${moduleDir}/build")
-    outputDir.mkdirs()
-
+task createModuleJar(type: Jar) {
+    dependsOn createDex
+    
     // Configuration du JAR
-    archiveFileName = 'module.jar'
-    destinationDirectory = outputDir
+    archiveFileName = 'notes-module.jar'
+    destinationDirectory = file("${rootDir}/releases")
 
-    // Inclure les classes compilées et dexées
-    from(android.sourceSets.main.java.srcDirs)
-    from("${buildDir}/intermediates/dex/release/mergeDexRelease")
+    // Inclure les fichiers DEX
+    from("${buildDir}/intermediates/dex/release") {
+        include '**/*.dex'
+    }
+    
+    // Inclure les classes et ressources
+    from("${buildDir}/intermediates/javac/release/classes")
     from("${buildDir}/tmp/kotlin-classes/release")
-
+    from("${android.sourceSets.main.resources.srcDirs}")
+    
     // Exclure les fichiers non nécessaires
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
-
+    
     doLast {
-        // Déplacer le JAR final vers le répertoire releases/
-        def releasesDir = rootProject.file("releases")
-        releasesDir.mkdirs()
-        copy {
-            from outputDir
-            into releasesDir
-            rename { String fileName ->
-                'notes-module.jar'
-            }
-        }
+        println "Module JAR created at: ${archiveFile.get().asFile.absolutePath}"
     }
-}
-
-// Tâche pour copier les assets si nécessaire
-task copyModuleAssets(type: Copy) {
-    from('src/main/assets')
-    into "${buildDir}/module/build/assets"
-}
-
-// Tâche principale pour packager le module
-task packageModule {
-    dependsOn createModuleJar
-    dependsOn copyModuleAssets
 }
 
 dependencies {
@@ -85,4 +90,5 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'androidx.multidex:multidex:2.0.1'
 }
