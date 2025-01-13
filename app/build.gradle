@@ -25,16 +25,30 @@ android {
 }
 
 task createModuleJar(type: Jar) {
-    from android.sourceSets.main.java.srcDirs
-    from android.sourceSets.main.kotlin.srcDirs
-    from android.sourceSets.main.resources.srcDirs
+    dependsOn 'assembleRelease'
+    
+    // S'assure que le dossier releases existe
+    doFirst {
+        def releasesDir = new File("${rootDir}/releases")
+        releasesDir.mkdirs()
+        println "Releases directory: ${releasesDir.absolutePath}"
+    }
+
+    from("${buildDir}/intermediates/javac/release/classes")
+    from("${buildDir}/tmp/kotlin-classes/release")
+    from(android.sourceSets.main.resources.srcDirs)
     
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
     
-    destinationDirectory = file("${projectDir}/releases")
+    destinationDirectory = file("${rootDir}/releases")
     archiveFileName = 'notes-module.jar'
+
+    // Log le chemin du JAR créé
+    doLast {
+        println "\nModule JAR created at: ${archiveFile.get().asFile.absolutePath}"
+    }
 }
 
 dependencies {
