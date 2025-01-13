@@ -28,8 +28,25 @@ android {
     }
 }
 
-task createDex(type: Exec) {
+task createIntermediateJar(type: Jar) {
     dependsOn 'assembleRelease'
+    archiveFileName = 'intermediate.jar'
+    destinationDirectory = file("${buildDir}/intermediates/tmp")
+    
+    from("${buildDir}/intermediates/javac/release/classes")
+    from("${buildDir}/tmp/kotlin-classes/release")
+    
+    exclude 'BuildConfig.class'
+    exclude 'R.class'
+    exclude 'R$*.class'
+    
+    doFirst {
+        destinationDirectory.mkdirs()
+    }
+}
+
+task createDex(type: Exec) {
+    dependsOn createIntermediateJar
     workingDir "${buildDir}"
     
     def androidHome = System.getenv("ANDROID_HOME")
@@ -38,8 +55,7 @@ task createDex(type: Exec) {
     def d8Executable = isWindows ? "d8.bat" : "d8"
     def dxPath = new File(androidHome, "build-tools/${buildToolsVersion}/${d8Executable}")
     
-    def classesDir = "${buildDir}/intermediates/javac/release/classes"
-    def kotlinClassesDir = "${buildDir}/tmp/kotlin-classes/release"
+    def intermediateJar = new File("${buildDir}/intermediates/tmp/intermediate.jar")
     def dexOutputJar = new File("${buildDir}/intermediates/dex/release.jar")
     
     doFirst {
@@ -49,8 +65,7 @@ task createDex(type: Exec) {
     commandLine dxPath.absolutePath,
             "--output",
             dexOutputJar.absolutePath,
-            classesDir,
-            kotlinClassesDir
+            intermediateJar.absolutePath
 }
 
 task createModuleJar(type: Jar) {
@@ -60,13 +75,7 @@ task createModuleJar(type: Jar) {
     destinationDirectory = file("${rootDir}/releases")
     
     from(zipTree("${buildDir}/intermediates/dex/release.jar"))
-    from("${buildDir}/intermediates/javac/release/classes")
-    from("${buildDir}/tmp/kotlin-classes/release")
     from(android.sourceSets.main.resources.srcDirs)
-    
-    exclude 'BuildConfig.class'
-    exclude 'R.class'
-    exclude 'R$*.class'
     
     doFirst {
         destinationDirectory.mkdirs()
