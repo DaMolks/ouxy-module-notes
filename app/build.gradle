@@ -40,15 +40,15 @@ task createDex(type: Exec) {
     
     def classesDir = "${buildDir}/intermediates/javac/release/classes"
     def kotlinClassesDir = "${buildDir}/tmp/kotlin-classes/release"
-    def dexOutputDir = new File("${buildDir}/intermediates/dex/release")
+    def dexOutputJar = new File("${buildDir}/intermediates/dex/release.jar")
     
     doFirst {
-        dexOutputDir.mkdirs()
+        dexOutputJar.parentFile.mkdirs()
     }
     
     commandLine dxPath.absolutePath,
             "--output",
-            "${dexOutputDir}/classes.dex",
+            dexOutputJar.absolutePath,
             classesDir,
             kotlinClassesDir
 }
@@ -58,11 +58,8 @@ task createModuleJar(type: Jar) {
     
     archiveFileName = 'notes-module.jar'
     destinationDirectory = file("${rootDir}/releases")
-
-    from("${buildDir}/intermediates/dex/release") {
-        include '**/*.dex'
-    }
     
+    from(zipTree("${buildDir}/intermediates/dex/release.jar"))
     from("${buildDir}/intermediates/javac/release/classes")
     from("${buildDir}/tmp/kotlin-classes/release")
     from(android.sourceSets.main.resources.srcDirs)
@@ -70,6 +67,10 @@ task createModuleJar(type: Jar) {
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
+    
+    doFirst {
+        destinationDirectory.mkdirs()
+    }
     
     doLast {
         println "Module JAR created at: ${archiveFile.get().asFile.absolutePath}"
