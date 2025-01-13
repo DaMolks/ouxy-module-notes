@@ -31,23 +31,23 @@ android {
 task createIntermediateJar(type: Jar) {
     dependsOn 'assembleRelease'
     archiveFileName = 'intermediate.jar'
-    destinationDirectory = file("${buildDir}/intermediates/tmp")
+    destinationDirectory = layout.buildDirectory.dir('intermediates/tmp')
     
-    from("${buildDir}/intermediates/javac/release/classes")
-    from("${buildDir}/tmp/kotlin-classes/release")
+    from(layout.buildDirectory.dir('intermediates/javac/release/classes'))
+    from(layout.buildDirectory.dir('tmp/kotlin-classes/release'))
     
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
     
     doFirst {
-        destinationDirectory.mkdirs()
+        destinationDirectory.get().asFile.mkdirs()
     }
 }
 
 task createDex(type: Exec) {
     dependsOn createIntermediateJar
-    workingDir "${buildDir}"
+    workingDir layout.buildDirectory.get().asFile
     
     def androidHome = System.getenv("ANDROID_HOME")
     def buildToolsVersion = android.buildToolsVersion
@@ -55,14 +55,16 @@ task createDex(type: Exec) {
     def d8Executable = isWindows ? "d8.bat" : "d8"
     def dxPath = new File(androidHome, "build-tools/${buildToolsVersion}/${d8Executable}")
     
-    def intermediateJar = new File("${buildDir}/intermediates/tmp/intermediate.jar")
-    def dexOutputJar = new File("${buildDir}/intermediates/dex/release.jar")
+    def intermediateJar = layout.buildDirectory.file('intermediates/tmp/intermediate.jar').get().asFile
+    def dexOutputJar = layout.buildDirectory.file('intermediates/dex/release.jar').get().asFile
     
     doFirst {
         dexOutputJar.parentFile.mkdirs()
     }
     
     commandLine dxPath.absolutePath,
+            "--lib",
+            new File(project.android.sdkDirectory, "platforms/android-${project.android.compileSdkVersion}/android.jar").absolutePath,
             "--output",
             dexOutputJar.absolutePath,
             intermediateJar.absolutePath
@@ -72,13 +74,13 @@ task createModuleJar(type: Jar) {
     dependsOn createDex
     
     archiveFileName = 'notes-module.jar'
-    destinationDirectory = file("${rootDir}/releases")
+    destinationDirectory = layout.projectDirectory.dir('releases')
     
-    from(zipTree("${buildDir}/intermediates/dex/release.jar"))
+    from(zipTree(layout.buildDirectory.file('intermediates/dex/release.jar')))
     from(android.sourceSets.main.resources.srcDirs)
     
     doFirst {
-        destinationDirectory.mkdirs()
+        destinationDirectory.get().asFile.mkdirs()
     }
     
     doLast {
