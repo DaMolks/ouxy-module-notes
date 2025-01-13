@@ -43,11 +43,9 @@ task createIntermediateJar(type: Jar) {
     archiveFileName = 'intermediate.jar'
     destinationDirectory = layout.buildDirectory.dir('intermediates/tmp')
     
-    // Include compiled classes
     from(layout.buildDirectory.dir('intermediates/javac/release/classes'))
     from(layout.buildDirectory.dir('tmp/kotlin-classes/release'))
     
-    // Include dependency classes
     from(fileTree(layout.buildDirectory.dir('tmp/jar-deps'))) {
         include '**/*.class'
         include '**/*.kotlin_metadata'
@@ -75,23 +73,26 @@ task createDex(type: Exec) {
     def buildToolsVersion = android.buildToolsVersion
     def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
     def d8Executable = isWindows ? "d8.bat" : "d8"
-    def dxPath = new File(androidHome, "build-tools/${buildToolsVersion}/${d8Executable}")
     
+    def d8Path = new File(new File(new File(androidHome), "build-tools/${buildToolsVersion}"), d8Executable)
     def intermediateJar = layout.buildDirectory.file('intermediates/tmp/intermediate.jar').get().asFile
     def dexOutputJar = layout.buildDirectory.file('intermediates/dex/release.jar').get().asFile
     
-    def platformDir = new File(androidHome, "platforms")
-    def androidPlatform = platformDir.listFiles().find { it.name.startsWith("android-") }
+    def platformsDir = new File(androidHome, "platforms")
+    def androidPlatform = platformsDir.listFiles().find { it.name.startsWith("android-") }
     def androidJar = androidPlatform ? new File(androidPlatform, "android.jar") : null
     
     doFirst {
         dexOutputJar.parentFile.mkdirs()
         if (!androidJar?.exists()) {
-            throw new GradleException("Cannot find android.jar in any of the platform directories in ${platformDir.absolutePath}")
+            throw new GradleException("Cannot find android.jar in any of the platform directories in ${platformsDir.absolutePath}")
+        }
+        if (!d8Path.exists()) {
+            throw new GradleException("Cannot find d8 at ${d8Path.absolutePath}")
         }
     }
     
-    commandLine dxPath.absolutePath,
+    commandLine d8Path.absolutePath,
             "--lib",
             androidJar.absolutePath,
             "--output",
@@ -114,7 +115,6 @@ task createModuleJar(type: Jar) {
     
     doLast {
         println "Module JAR created at: ${archiveFile.get().asFile.absolutePath}"
-        // Print jar content for debugging
         def jarFile = new java.util.jar.JarFile(archiveFile.get().asFile)
         jarFile.entries().each { entry ->
             println "${entry.name} (${entry.size} bytes)"
