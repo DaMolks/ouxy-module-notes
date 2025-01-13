@@ -11,6 +11,7 @@ android {
 
     defaultConfig {
         minSdk 24
+        multiDexEnabled true
     }
 
     buildFeatures {
@@ -27,57 +28,67 @@ android {
     }
 }
 
-// Tâche pour créer le module jar avec toutes les dépendances
-task createModuleJar(type: Jar) {
-    dependsOn 'assembleRelease'
-
-    // Structure du module
-    def moduleDir = file("${buildDir}/module")
-    def outputDir = file("${moduleDir}/build")
-    outputDir.mkdirs()
-
-    // Configuration du JAR
-    archiveFileName = 'module.jar'
-    destinationDirectory = outputDir
-
-    // Inclure les classes compilées et dexées
-    from(android.sourceSets.main.java.srcDirs)
-    from("${buildDir}/intermediates/dex/release/mergeDexRelease")
-    from("${buildDir}/tmp/kotlin-classes/release")
-
-    // Exclure les fichiers non nécessaires
-    exclude 'BuildConfig.class'
-    exclude 'R.class'
-    exclude 'R$*.class'
-
-    doLast {
-        // Déplacer le JAR final vers le répertoire releases/
-        def releasesDir = rootProject.file("releases")
-        releasesDir.mkdirs()
-        copy {
-            from outputDir
-            into releasesDir
-            rename { String fileName ->
-                'notes-module.jar'
-            }
+// Configuration des repositories pour inclure le GitHub Packages
+repositories {
+    mavenCentral()
+    maven {
+        url = uri("https://maven.pkg.github.com/DaMolks/ouxy-sdk")
+        credentials {
+            username = System.getenv("GITHUB_USERNAME") ?: project.properties["github.username"]?.toString()
+            password = System.getenv("GITHUB_TOKEN") ?: project.properties["github.token"]?.toString()
         }
     }
 }
 
-// Tâche pour copier les assets si nécessaire
-task copyModuleAssets(type: Copy) {
-    from('src/main/assets')
-    into "${buildDir}/module/build/assets"
+task createDex(type: Exec) {
+    dependsOn 'assembleRelease'
+    workingDir "${buildDir}"
+    
+    def androidHome = System.getenv("ANDROID_HOME")
+    def buildToolsVersion = "34.0.0" // Version explicite des build tools
+    def dxPath = "${androidHome}/build-tools/${buildToolsVersion}/d8"
+    
+    def classesDir = "${buildDir}/intermediates/javac/release/classes"
+    def kotlinClassesDir = "${buildDir}/tmp/kotlin-classes/release"
+    def dexOutputDir = "${buildDir}/intermediates/dex/release"
+    
+    commandLine dxPath,
+            '--output',
+            dexOutputDir,
+            classesDir,
+            kotlinClassesDir
 }
 
-// Tâche principale pour packager le module
-task packageModule {
-    dependsOn createModuleJar
-    dependsOn copyModuleAssets
+task createModuleJar(type: Jar) {
+    dependsOn createDex
+    
+    archiveFileName = 'notes-module.jar'
+    destinationDirectory = file("${rootDir}/releases")
+
+    from("${buildDir}/intermediates/dex/release") {
+        include '**/*.dex'
+    }
+    
+    from("${buildDir}/intermediates/javac/release/classes")
+    from("${buildDir}/tmp/kotlin-classes/release")
+    from(android.sourceSets.main.resources.srcDirs)
+    
+    exclude 'BuildConfig.class'
+    exclude 'R.class'
+    exclude 'R$*.class'
+    
+    doLast {
+        println "Module JAR created at: ${archiveFile.get().asFile.absolutePath}"
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    
+    // Ouxy SDK
+    implementation 'com.damolks.ouxy:sdk:1.0.0'
+    
+    // Android dependencies
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
@@ -85,4 +96,5 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'androidx.multidex:multidex:2.0.1'
 }
