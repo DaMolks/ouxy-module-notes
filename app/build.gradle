@@ -57,8 +57,10 @@ task createDex(type: Exec) {
     
     def intermediateJar = layout.buildDirectory.file('intermediates/tmp/intermediate.jar').get().asFile
     def dexOutputJar = layout.buildDirectory.file('intermediates/dex/release.jar').get().asFile
+    
     def platformDir = new File(androidHome, "platforms")
-    def androidJar = platformDir.listFiles().find { it.name.startsWith("android-") }?.let { new File(it, "android.jar") }
+    def androidPlatform = platformDir.listFiles().find { it.name.startsWith("android-") }
+    def androidJar = androidPlatform ? new File(androidPlatform, "android.jar") : null
     
     doFirst {
         dexOutputJar.parentFile.mkdirs()
