@@ -57,14 +57,18 @@ task createDex(type: Exec) {
     
     def intermediateJar = layout.buildDirectory.file('intermediates/tmp/intermediate.jar').get().asFile
     def dexOutputJar = layout.buildDirectory.file('intermediates/dex/release.jar').get().asFile
+    def androidJar = new File(androidHome, "platforms/android-${android.compileSdkVersion}/android.jar")
     
     doFirst {
         dexOutputJar.parentFile.mkdirs()
+        if (!androidJar.exists()) {
+            throw new GradleException("Cannot find android.jar at ${androidJar.absolutePath}")
+        }
     }
     
     commandLine dxPath.absolutePath,
             "--lib",
-            new File(project.android.sdkDirectory, "platforms/android-${project.android.compileSdkVersion}/android.jar").absolutePath,
+            androidJar.absolutePath,
             "--output",
             dexOutputJar.absolutePath,
             intermediateJar.absolutePath
