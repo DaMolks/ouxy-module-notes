@@ -28,24 +28,12 @@ android {
     }
 }
 
-// Configuration des repositories pour inclure le GitHub Packages
-repositories {
-    mavenCentral()
-    maven {
-        url = uri("https://maven.pkg.github.com/DaMolks/ouxy-sdk")
-        credentials {
-            username = System.getenv("GITHUB_USERNAME") ?: project.properties["github.username"]?.toString()
-            password = System.getenv("GITHUB_TOKEN") ?: project.properties["github.token"]?.toString()
-        }
-    }
-}
-
 task createDex(type: Exec) {
     dependsOn 'assembleRelease'
     workingDir "${buildDir}"
     
     def androidHome = System.getenv("ANDROID_HOME")
-    def buildToolsVersion = "34.0.0" // Version explicite des build tools
+    def buildToolsVersion = android.buildToolsVersion
     def dxPath = "${androidHome}/build-tools/${buildToolsVersion}/d8"
     
     def classesDir = "${buildDir}/intermediates/javac/release/classes"
@@ -83,12 +71,8 @@ task createModuleJar(type: Jar) {
 }
 
 dependencies {
-    implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation files('libs/ouxy-sdk.jar')
     
-    // Ouxy SDK
-    implementation 'com.damolks.ouxy:sdk:1.0.0'
-    
-    // Android dependencies
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'com.google.android.material:material:1.11.0'
@@ -96,5 +80,4 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    implementation 'androidx.multidex:multidex:2.0.1'
 }
