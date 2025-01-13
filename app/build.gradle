@@ -40,11 +40,15 @@ task createDex(type: Exec) {
     
     def classesDir = "${buildDir}/intermediates/javac/release/classes"
     def kotlinClassesDir = "${buildDir}/tmp/kotlin-classes/release"
-    def dexOutputDir = "${buildDir}/intermediates/dex/release"
+    def dexOutputDir = new File("${buildDir}/intermediates/dex/release")
+    
+    doFirst {
+        dexOutputDir.mkdirs()
+    }
     
     commandLine dxPath.absolutePath,
-            '--output',
-            dexOutputDir,
+            "--output",
+            "${dexOutputDir}/classes.dex",
             classesDir,
             kotlinClassesDir
 }
