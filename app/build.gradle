@@ -34,35 +34,42 @@ configurations {
     jarInclude.extendsFrom implementation
 }
 
-task extractDependencies(type: Sync) {
-    from configurations.jarInclude
+task extractJars(type: Sync) {
+    from configurations.jarInclude.collect { zipTree(it) }
+    include '**/*.class'
+    include '**/*.kotlin_metadata'
+    include '**/*.kotlin_module'
+    exclude 'META-INF/**'
     into layout.buildDirectory.dir('tmp/jar-deps')
 }
 
 task createIntermediateJar(type: Jar) {
-    dependsOn 'assembleRelease', extractDependencies
+    dependsOn 'assembleRelease', extractJars
     archiveFileName = 'intermediate.jar'
     destinationDirectory = layout.buildDirectory.dir('intermediates/tmp')
     
+    // Classes compilées
     from(layout.buildDirectory.dir('intermediates/javac/release/classes'))
     from(layout.buildDirectory.dir('tmp/kotlin-classes/release'))
     
-    from(fileTree(layout.buildDirectory.dir('tmp/jar-deps'))) {
-        include '**/*.class'
-        include '**/*.kotlin_metadata'
-        include '**/*.kotlin_module'
-        exclude 'META-INF/maven/**'
-        exclude 'META-INF/proguard/**'
-        exclude 'META-INF/versions/**'
-        exclude 'META-INF/*.kotlin_module'
-        exclude 'META-INF/*.version'
-        exclude 'META-INF/MANIFEST.MF'
-    }
+    // Classes des dépendances
+    from(layout.buildDirectory.dir('tmp/jar-deps'))
     
     duplicatesStrategy = DuplicatesStrategy.EXCLUDE
     
     doFirst {
+        println "Creating intermediate JAR with dependencies:"
+        configurations.jarInclude.each { println "  -> ${it}" }
         destinationDirectory.get().asFile.mkdirs()
+    }
+    
+    doLast {
+        def jarFile = new java.util.jar.JarFile(archiveFile.get().asFile)
+        println "\nIntermediate JAR contents:"
+        jarFile.entries().each { entry ->
+            println "  -> ${entry.name}"
+        }
+        jarFile.close()
     }
 }
 
@@ -96,6 +103,10 @@ task createDex(type: Exec) {
         if (!d8Path.exists()) {
             throw new GradleException("Cannot find d8 at ${d8Path.absolutePath}")
         }
+        println "\nRunning d8 with:"
+        println "  -> Input: ${intermediateJar.absolutePath}"
+        println "  -> Output: ${dexOutputJar.absolutePath}"
+        println "  -> Android JAR: ${androidJar.absolutePath}"
     }
     
     commandLine d8Path.absolutePath,
@@ -120,10 +131,11 @@ task createModuleJar(type: Jar) {
     }
     
     doLast {
-        println "Module JAR created at: ${archiveFile.get().asFile.absolutePath}"
+        println "\nModule JAR created at: ${archiveFile.get().asFile.absolutePath}"
         def jarFile = new java.util.jar.JarFile(archiveFile.get().asFile)
+        println "Final JAR contents:"
         jarFile.entries().each { entry ->
-            println "${entry.name} (${entry.size} bytes)"
+            println "  -> ${entry.name} (${entry.size} bytes)"
         }
         jarFile.close()
     }
@@ -139,9 +151,11 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
-    jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    jarInclude 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     implementation "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
+
+    jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2'
+    jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
+    jarInclude 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
     jarInclude "org.jetbrains.kotlin:kotlin-stdlib:1.9.22"
 }
