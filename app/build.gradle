@@ -14,6 +14,10 @@ android {
         multiDexEnabled true
     }
 
+    buildFeatures {
+        viewBinding true
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
@@ -27,32 +31,24 @@ android {
 task createModuleJar(type: Jar) {
     dependsOn 'assembleRelease'
     
-    // S'assure que le dossier releases existe
-    doFirst {
-        def releasesDir = new File("${rootDir}/releases")
-        releasesDir.mkdirs()
-        println "Releases directory: ${releasesDir.absolutePath}"
-    }
-
-    from("${buildDir}/intermediates/javac/release/classes")
-    from("${buildDir}/tmp/kotlin-classes/release")
-    from(android.sourceSets.main.resources.srcDirs)
+    archiveFileName = 'notes-module.jar'
+    destinationDirectory = file("${rootDir}/releases")
+    
+    from android.sourceSets.main.java.srcDirs
+    from fileTree(dir: "${buildDir}/intermediates/javac/release/classes")
+    from fileTree(dir: "${buildDir}/tmp/kotlin-classes/release")
     
     exclude 'BuildConfig.class'
     exclude 'R.class'
     exclude 'R$*.class'
     
-    destinationDirectory = file("${rootDir}/releases")
-    archiveFileName = 'notes-module.jar'
-
-    // Log le chemin du JAR créé
-    doLast {
-        println "\nModule JAR created at: ${archiveFile.get().asFile.absolutePath}"
+    doFirst {
+        destinationDirectory.get().asFile.mkdirs()
     }
 }
 
 dependencies {
-    implementation files('libs/ouxy-sdk.jar')
+    compileOnly files('libs/ouxy-sdk.jar')
     
     implementation 'androidx.core:core-ktx:1.12.0'
     implementation 'androidx.appcompat:appcompat:1.6.1'
