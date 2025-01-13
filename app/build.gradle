@@ -5,10 +5,6 @@ plugins {
     id 'org.jetbrains.kotlin.plugin.serialization'
 }
 
-configurations {
-    jarInclude
-}
-
 android {
     namespace 'com.damolks.ouxy.modules.notes'
     compileSdk 34
@@ -29,21 +25,36 @@ android {
 
     kotlinOptions {
         jvmTarget = '17'
-        freeCompilerArgs += ["-opt-in=kotlin.RequiresOptIn"]
     }
 }
 
-task extractJars(type: Sync) {
-    from configurations.jarInclude.collect { zipTree(it) }
-    include '**/*.class'
-    include '**/*.kotlin_metadata'
-    include '**/*.kotlin_module'
-    exclude 'META-INF/**'
-    into layout.buildDirectory.dir('tmp/jar-deps')
+task extractDependencies {
+    doLast {
+        def depDir = new File("${buildDir}/tmp/jar-deps")
+        depDir.deleteDir()
+        depDir.mkdirs()
+        
+        configurations.implementation.resolvedConfiguration.resolvedArtifacts.findAll { artifact ->
+            def name = artifact.name
+            return name.contains("kotlinx-serialization") || name.contains("kotlinx-coroutines")
+        }.each { artifact ->
+            def file = artifact.file
+            if (file.exists()) {
+                project.copy {
+                    from zipTree(file)
+                    into depDir
+                    include '**/*.class'
+                    include '**/*.kotlin_metadata'
+                    include '**/*.kotlin_module'
+                    exclude 'META-INF/**'
+                }
+            }
+        }
+    }
 }
 
 task createIntermediateJar(type: Jar) {
-    dependsOn 'assembleRelease', extractJars
+    dependsOn 'assembleRelease', extractDependencies
     archiveFileName = 'intermediate.jar'
     destinationDirectory = layout.buildDirectory.dir('intermediates/tmp')
     
@@ -121,8 +132,4 @@ dependencies {
     implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.7.0'
     implementation 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
-    
-    jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-core:1.6.2'
-    jarInclude 'org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.2'
-    jarInclude 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
 }
