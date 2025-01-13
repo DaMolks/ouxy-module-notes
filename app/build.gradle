@@ -69,21 +69,21 @@ task createDex(type: Exec) {
     dependsOn createIntermediateJar
     workingDir layout.buildDirectory.get().asFile
     
-    def androidHome = System.getenv("ANDROID_HOME")
-    if (!androidHome) {
-        throw new GradleException("ANDROID_HOME not set")
+    def sdk = android.sdkDirectory
+    if (!sdk) {
+        throw new GradleException("Android SDK not found")
     }
     
     def buildToolsVersion = android.buildToolsVersion
     def isWindows = System.getProperty('os.name').toLowerCase().contains('windows')
     def d8Executable = isWindows ? "d8.bat" : "d8"
     
-    def buildToolsDir = new File(androidHome.toString(), "build-tools/${buildToolsVersion}")
+    def buildToolsDir = new File(sdk, "build-tools/${buildToolsVersion}")
     def d8Path = new File(buildToolsDir, d8Executable)
     def intermediateJar = layout.buildDirectory.file('intermediates/tmp/intermediate.jar').get().asFile
     def dexOutputJar = layout.buildDirectory.file('intermediates/dex/release.jar').get().asFile
     
-    def platformsDir = new File(androidHome.toString(), "platforms")
+    def platformsDir = new File(sdk, "platforms")
     def androidPlatform = platformsDir.listFiles()?.find { it.name.startsWith("android-") }
     def androidJar = androidPlatform ? new File(androidPlatform, "android.jar") : null
     
