@@ -52,7 +52,15 @@ class NotesModule : OuxyModule {
     private fun createNote(title: String, content: String) {
         context.lifecycleScope.launch {
             try {
-                val note = Note(title = title, content = content)
+                val currentTime = System.currentTimeMillis()
+                val note = Note(
+                    id = java.util.UUID.randomUUID().toString(),
+                    title = title,
+                    content = content,
+                    tags = emptyList(),
+                    createdAt = currentTime,
+                    updatedAt = currentTime
+                )
                 storage.saveNote(note)
                 notifyNoteAvailable(note)
             } catch (e: Exception) {
@@ -66,7 +74,7 @@ class NotesModule : OuxyModule {
             "id" to note.id,
             "title" to note.title,
             "content" to note.content,
-            "timestamp" to note.timestamp
+            "createdAt" to note.createdAt
         ))
     }
 }
