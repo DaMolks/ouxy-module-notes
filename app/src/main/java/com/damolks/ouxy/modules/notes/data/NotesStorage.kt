@@ -1,10 +1,10 @@
 package com.damolks.ouxy.modules.notes.data
 
-import com.damolks.ouxy.module.ModuleContext
+import com.damolks.ouxy.module.StorageApi
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.Serializable
 
-class NotesStorage(private val context: ModuleContext) {
+class NotesStorage(private val storage: StorageApi) {
     private val notesFile = "notes.json"
     private val json = Json { prettyPrint = true }
 
@@ -21,7 +21,7 @@ class NotesStorage(private val context: ModuleContext) {
 
     suspend fun getAllNotes(): List<Note> {
         return try {
-            val content = context.storage.readText(notesFile)
+            val content = storage.readText(notesFile)
             json.decodeFromString<NotesList>(content).notes
         } catch (e: Exception) {
             emptyList()
@@ -34,7 +34,7 @@ class NotesStorage(private val context: ModuleContext) {
     }
 
     private suspend fun saveNotes(notes: List<Note>) {
-        context.storage.writeText(notesFile, json.encodeToString(NotesList.serializer(), NotesList(notes)))
+        storage.writeText(notesFile, json.encodeToString(NotesList.serializer(), NotesList(notes)))
     }
 
     @Serializable
